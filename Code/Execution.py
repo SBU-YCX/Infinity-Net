@@ -112,30 +112,6 @@ def get_model(args):
 				  		 args.dim_out, 
 				  		 args.num_node, 
 				  		 args.on_off).cuda()
-	elif args.model_name.lower() == 'gusc':
-		return GUSC(args.dim_in, 
-					args.dim_out, 
-					args.dim_hidden, 
-					args.num_hidden, 
-					args.num_node).cuda()
-	elif args.model_name.lower() == 'gusc1':
-		return GUSC1(args.dim_in, 
-					args.dim_out, 
-					args.dim_hidden, 
-					args.num_hidden, 
-					args.num_node).cuda()
-	elif args.model_name.lower() == 'gutf':
-		return GUTF(args.dim_in, 
-					args.dim_out, 
-					args.dim_hidden, 
-					args.num_hidden, 
-					args.num_node).cuda()
-	elif args.model_name.lower() == 'gutf1':
-		return GUTF1(args.dim_in, 
-					args.dim_out, 
-					args.dim_hidden, 
-					args.num_hidden, 
-					args.num_node).cuda()
 	else:
 		return None
 
@@ -146,14 +122,6 @@ def get_data(args):
 		data_train = IEEE(args.data_path, 'train', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
 		data_val = IEEE(args.data_path, 'valid', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
 		data_test = IEEE(args.data_path, 'test', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-	elif args.data_name.lower() == 'metr':
-		data_train = Traffic(args.data_path, 'train', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-		data_val = Traffic(args.data_path, 'valid', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-		data_test = Traffic(args.data_path, 'test', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-	elif args.data_name.lower() == 'pems':
-		data_train = Traffic(args.data_path, 'train', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-		data_val = Traffic(args.data_path, 'valid', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
-		data_test = Traffic(args.data_path, 'test', args.noise_type, args.noise_ratio, args.poisson_lambda, args.rayleigh_scale, args.gamma_shape, args.gamma_scale)
 	else:
 		data_train = None
 		data_val = None
@@ -188,20 +156,18 @@ def get_metrics(X, Y_p, Y=None):
 		PS = (Y_p ** 2).mean(1)
 		PN = ((X - Y_p) ** 2).mean(1)
 		snr = 10 * torch.log10(PS / (PN + 1e-12))
-		#print(snr.mean())
 		return snr, snr, snr, snr
 	else:
 		# SNR
 		Y_mean = Y.mean(1, keepdim=True)
-		PS = (Y ** 2).mean(1)#((Y - Y_mean) ** 2).sum()
-		PN = ((Y_p - Y) ** 2).mean(1)#.sum()
+		PS = (Y ** 2).mean(1)
+		PN = ((Y_p - Y) ** 2).mean(1)
 		snr = 10 * torch.log10(PS / PN)
-		PN_ori = ((X - Y) ** 2).mean(1)#.sum()
+		PN_ori = ((X - Y) ** 2).mean(1)
 		snr_ori = 10 * torch.log10(PS / PN_ori)
 		# MAE
 		mae = torch.abs(Y_p - Y)
 		mae_ori = torch.abs(X - Y)
-		#print(mae.shape, snr.shape)
 	return snr, snr_ori, mae, mae_ori
 
 
@@ -231,9 +197,7 @@ def train(args):
 		pbar.write('\x1b[1;35mTraining Epoch\t{:03d}:\x1b[0m'.format(epoch))
 		for n, data_batch in enumerate(pbar):
 			X = data_batch['X'].cuda().float()
-			#print(X.shape)
 			A = data_batch['A'].cuda().float()
-			#Y = None
 			Y = data_batch['Y'].cuda().float()
 			optimizer.zero_grad()
 			loss = model.cal_loss(X, A)
@@ -246,10 +210,8 @@ def train(args):
 		snr, snr_ori, mae, mae_ori, k = 0., 0., 0., 0., 0.
 		for n, data_batch in enumerate(pbar):
 			X = data_batch['X'].cuda().float()
-			#Y = None
 			Y = data_batch['Y'].cuda().float()
 			A = data_batch['A'].cuda().float()
-			#print(A.shape)
 			with torch.no_grad():
 				Y_p, _ = model.forward_seq(X, A)
 				snr_n, snr_ori_n, mae_n, mae_ori_n = get_metrics(X, Y_p, Y)
@@ -306,7 +268,6 @@ def test(args):
 	snr, snr_ori, mae, mae_ori, k = 0., 0., 0., 0., 0.
 	for n, data_batch in enumerate(pbar):
 		X = data_batch['X'].cuda().float()
-		#Y = None
 		Y = data_batch['Y'].cuda().float()
 		A = data_batch['A'].cuda().float()
 		with torch.no_grad():
@@ -316,19 +277,7 @@ def test(args):
 			snr_ori += snr_ori_n.mean()
 			mae += mae_n.mean()
 			mae_ori += mae_ori_n.mean()
-			k += 1#args.batch_size
-			'''
-			if (n == 0):
-				ts = np.arange(0, X.size()[1])
-				plt.plot(np.array(ts), X[0, :, 15, 0].cpu().numpy(), 'r*', np.array(ts), Y[0, :, 15, 0].cpu().numpy(), 'g-', np.array(ts), Y_p[0, :, 15, 0].cpu().numpy())
-				#plt.savefig('{}_ori.png'.format(args.model_name))
-				#plt.plot(np.array(ts), Y_p[0].cpu().numpy(), 'r*', np.array(ts), Y[0].cpu().numpy())
-				if (args.model_name == 'ma'):
-					plt.savefig('{}_{}_{}_{}_denoise.png'.format(args.model_name, args.window_size, args.noise_type, args.noise_ratio))
-				else:
-					plt.savefig('{}_{}_{}_denoise.png'.format(args.model_name, args.noise_type, args.noise_ratio))
-				return 
-			'''
+			k += 1
 	snr = (snr / k).detach().cpu().numpy()
 	snr_ori = (snr_ori / k).detach().cpu().numpy()
 	mae = (mae / k).detach().cpu().numpy()
