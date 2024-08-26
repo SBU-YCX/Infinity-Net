@@ -1,8 +1,23 @@
 ##############################################
 #    Author : Yucheng Xing
-#    Description : Losses
+#    Description : Loss Functions
 ##############################################
+
+
 import torch
-import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
+
+
+class InfLoss(nn.Module):
+	def __init__(self, alpha=0.5):
+		super(InfLoss, self).__init__()
+		self.alpha = alpha
+		return
+
+	def forward(self, xs, ys, zs):
+		forward_loss = ((ys - xs) ** 2).mean()
+		backward_loss = ((ys[:, :-1, :, :] - zs) ** 2).mean()
+		loss = self.alpha * forward_loss + (1 - self.alpha) * backward_loss
+		return loss
+
+	
