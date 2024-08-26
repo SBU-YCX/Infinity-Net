@@ -1,2 +1,2 @@
 # InfinityNet
- Unsupervised Graph Signal Denoising
+Unsupervised Model for Online Graph Time-Series Denoising
