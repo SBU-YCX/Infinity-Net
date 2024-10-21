@@ -13,3 +13,13 @@ This is an implementation of the paper [$\infty$-Net: An Unsupervised Model for 
 ## Citation
 
 If you use this code, please cite:
+
+```
+@InProceedings{xing_inftynet,
+    author="Xing, Yucheng
+            and Wang, Xin",
+    title="$\infty$-Net: An Unsupervised Model for Online Graph Time-Series Denoising",
+    booktitle="ICONIP",
+    year="2024"
+}
+```
